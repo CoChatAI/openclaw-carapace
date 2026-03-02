@@ -34,7 +34,7 @@ program
   .description(
     "Security auditor, CVE checker, and skill scanner for OpenClaw gateways",
   )
-  .version("0.2.0");
+  .version("0.2.1");
 
 // ---------------------------------------------------------------------------
 // audit — config + vulnerability checks combined

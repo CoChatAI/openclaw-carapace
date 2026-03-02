@@ -332,7 +332,7 @@ export function reportSarif(result: AuditResult): string {
           driver: {
             name: "openclaw-carapace",
             informationUri: "https://github.com/cochatai/openclaw-carapace",
-            version: "0.2.0",
+            version: "0.2.1",
             rules: deduplicateSarifRules(result.findings),
           },
         },

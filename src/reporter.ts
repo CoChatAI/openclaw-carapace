@@ -31,23 +31,6 @@ const GRADE_COLOR: Record<string, (s: string) => string> = {
 // ASCII art & personality
 // ---------------------------------------------------------------------------
 
-const LOBSTER = chalk.red(`
-      ___
-     /   \\
- ___/     \\___
-/    \\   /    \\
-\\     \\_/     /
- \\   / | \\   /
-  \\_/  |  \\_/
-   /\\  |  /\\
-  /  \\ | /  \\
- /    \\|/    \\
- \\___/ | \\___/
-       |
-    \\  |  /
-     \\_|_/
-`);
-
 const CARAPACE_BANNER = `
 ${chalk.red.bold("   ┌─────────────────────────────┐")}
 ${chalk.red.bold("   │")}  ${chalk.white.bold("🦞  O P E N C L A W")}          ${chalk.red.bold("│")}
@@ -103,22 +86,6 @@ function divider(char: string = "─", width: number = 45): string {
 // ---------------------------------------------------------------------------
 // Text reporter
 // ---------------------------------------------------------------------------
-
-/**
- * Build a set of CWEs from the active vulnerability findings so config
- * findings can cross-reference them.
- */
-function buildVulnCweSet(vulnFindings: Finding[]): Set<string> {
-  const cwes = new Set<string>();
-  for (const f of vulnFindings) {
-    if (f.cwe) {
-      for (const c of f.cwe.split(/,\s*/)) {
-        cwes.add(c.trim());
-      }
-    }
-  }
-  return cwes;
-}
 
 /**
  * Count how many active vuln findings share a CWE with this config finding's
@@ -339,6 +306,21 @@ const SARIF_SEV_MAP: Record<string, string> = {
   info: "note",
 };
 
+function deduplicateSarifRules(findings: Finding[]) {
+  const seen = new Map<string, Finding>();
+  for (const f of findings) {
+    if (!seen.has(f.id)) seen.set(f.id, f);
+  }
+  return [...seen.values()].map((f) => ({
+    id: f.id,
+    shortDescription: { text: f.title },
+    fullDescription: { text: f.description },
+    helpUri: "https://github.com/cochatai/openclaw-carapace/blob/main/rules",
+    defaultConfiguration: { level: SARIF_SEV_MAP[f.severity] ?? "note" },
+    properties: { severity: f.severity, points: f.points },
+  }));
+}
+
 export function reportSarif(result: AuditResult): string {
   const sarif = {
     $schema:
@@ -349,19 +331,9 @@ export function reportSarif(result: AuditResult): string {
         tool: {
           driver: {
             name: "openclaw-carapace",
-            informationUri: "https://github.com/CoChatAI/openclaw-carapace",
+            informationUri: "https://github.com/cochatai/openclaw-carapace",
             version: "0.2.0",
-            rules: result.findings.map((f) => ({
-              id: f.id,
-              shortDescription: { text: f.title },
-              fullDescription: { text: f.description },
-              helpUri:
-                "https://github.com/cochatai/openclaw-carapace/blob/main/rules",
-              defaultConfiguration: {
-                level: SARIF_SEV_MAP[f.severity] ?? "note",
-              },
-              properties: { severity: f.severity, points: f.points },
-            })),
+            rules: deduplicateSarifRules(result.findings),
           },
         },
         results: result.findings.map((f) => ({

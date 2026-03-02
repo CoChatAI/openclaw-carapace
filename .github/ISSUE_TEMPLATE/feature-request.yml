@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        We'd love to hear your ideas for making Shield more useful.
+        We'd love to hear your ideas for making Carapace more useful.
 
   - type: textarea
     id: problem

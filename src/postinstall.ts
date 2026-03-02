@@ -21,13 +21,22 @@ const CACHE_DIR = join(homedir(), ".openclaw-carapace", "cache");
 const GHSA_CACHE_FILE = join(CACHE_DIR, "ghsa-advisories.json");
 const CVES_CACHE_FILE = join(CACHE_DIR, "cves.json");
 
+const FETCH_TIMEOUT_MS = 5000;
+
 async function fetchAndCache(url: string, cachePath: string): Promise<number> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const text = await response.text();
-  const data = JSON.parse(text);
-  writeFileSync(cachePath, text, "utf-8");
-  return Array.isArray(data) ? data.length : 0;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const text = await response.text();
+    const data = JSON.parse(text);
+    writeFileSync(cachePath, text, "utf-8");
+    return Array.isArray(data) ? data.length : 0;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function main() {

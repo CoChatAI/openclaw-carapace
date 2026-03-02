@@ -5,8 +5,9 @@ import { SEVERITY_WEIGHTS } from "./types.js";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function isVulnFinding(f: Finding): boolean {
-  return f.rule_type === "vulnerability";
+/** Only misconfiguration findings (or untyped findings) affect the config grade. */
+function isConfigFinding(f: Finding): boolean {
+  return !f.rule_type || f.rule_type === "misconfiguration";
 }
 
 function highestVersion(versions: string[]): string | undefined {
@@ -27,7 +28,7 @@ function highestVersion(versions: string[]): string | undefined {
 // ---------------------------------------------------------------------------
 
 export function computeScore(findings: Finding[]): number {
-  const configFindings = findings.filter((f) => !isVulnFinding(f));
+  const configFindings = findings.filter(isConfigFinding);
   const penalty = configFindings.reduce(
     (sum, f) => sum + (SEVERITY_WEIGHTS[f.severity] ?? 0),
     0,
@@ -81,8 +82,8 @@ export function buildAuditResult(
   rulesEvaluated: number,
   configPath: string,
 ): AuditResult {
-  const configFindings = findings.filter((f) => !isVulnFinding(f));
-  const vulnFindings = findings.filter(isVulnFinding);
+  const configFindings = findings.filter(isConfigFinding);
+  const vulnFindings = findings.filter((f) => f.rule_type === "vulnerability");
 
   const score = computeScore(findings);
   const totalFixablePoints = configFindings

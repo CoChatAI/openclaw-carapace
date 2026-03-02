@@ -24,7 +24,7 @@
     "test": "node --experimental-vm-modules node_modules/.bin/vitest run",
     "test:watch": "node --experimental-vm-modules node_modules/.bin/vitest",
     "start": "node dist/cli.js",
-    "postinstall": "node dist/postinstall.js"
+    "postinstall": "node -e \"const p='dist/postinstall.js';require('fs').existsSync(p)&&require('child_process').execSync('node '+p,{stdio:'inherit'})\""
   },
   "keywords": [
     "openclaw",

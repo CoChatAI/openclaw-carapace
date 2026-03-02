@@ -34,7 +34,7 @@ program
   .description(
     "Security auditor, CVE checker, and skill scanner for OpenClaw gateways",
   )
-  .version("0.1.0");
+  .version("0.2.0");
 
 // ---------------------------------------------------------------------------
 // audit — config + vulnerability checks combined
@@ -107,8 +107,10 @@ program
         console.log(reportText(result));
       }
 
-      const hasCritical = filtered.some((f) => f.severity === "critical");
-      const hasHigh = filtered.some((f) => f.severity === "high");
+      // Exit codes based on config findings only (vuln findings are informational)
+      const configFindings = result.config_findings;
+      const hasCritical = configFindings.some((f) => f.severity === "critical");
+      const hasHigh = configFindings.some((f) => f.severity === "high");
       if (hasCritical) process.exit(2);
       if (hasHigh) process.exit(1);
     } catch (err) {

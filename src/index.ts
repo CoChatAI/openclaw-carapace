@@ -39,6 +39,7 @@ export type {
   Check,
   Finding,
   AuditResult,
+  VulnSummary,
   Severity,
   HardeningProfile,
   PatternEntry,

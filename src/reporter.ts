@@ -104,66 +104,50 @@ function divider(char: string = "─", width: number = 45): string {
 // Text reporter
 // ---------------------------------------------------------------------------
 
-export function reportText(result: AuditResult): string {
-  const lines: string[] = [];
-  const gradeColor = GRADE_COLOR[result.grade] ?? chalk.white;
-
-  // Banner
-  lines.push(CARAPACE_BANNER);
-  lines.push("");
-
-  // Config info
-  lines.push(chalk.gray(`   Config:  ${result.config_path}`));
-  lines.push(chalk.gray(`   Rules:   ${result.rules_evaluated} evaluated`));
-  lines.push("");
-  lines.push(divider());
-  lines.push("");
-
-  // Score display — big and visible
-  const bar = scoreBar(result.score);
-  lines.push(
-    `   Grade ${gradeColor(result.grade)}  ${chalk.bold(String(result.score))}/100  ${bar}`,
-  );
-  lines.push("");
-
-  // Grade reaction
-  const reaction = GRADE_REACTION[result.grade];
-  if (reaction) {
-    lines.push(chalk.italic(`   ${reaction}`));
-    lines.push("");
+/**
+ * Build a set of CWEs from the active vulnerability findings so config
+ * findings can cross-reference them.
+ */
+function buildVulnCweSet(vulnFindings: Finding[]): Set<string> {
+  const cwes = new Set<string>();
+  for (const f of vulnFindings) {
+    if (f.cwe) {
+      for (const c of f.cwe.split(/,\s*/)) {
+        cwes.add(c.trim());
+      }
+    }
   }
+  return cwes;
+}
 
-  if (result.findings.length === 0) {
-    lines.push(`   ${CLEAN_MESSAGE}`);
-    lines.push("");
-    return lines.join("\n");
+/**
+ * Count how many active vuln findings share a CWE with this config finding's
+ * mitigates_cwes list.
+ */
+function countMitigatedCves(
+  configFinding: Finding,
+  vulnFindings: Finding[],
+): string[] {
+  if (!configFinding.mitigates_cwes?.length) return [];
+  const mitigateSet = new Set(configFinding.mitigates_cwes);
+  const mitigated: string[] = [];
+  for (const vf of vulnFindings) {
+    if (!vf.cwe) continue;
+    const vulnCwes = vf.cwe.split(/,\s*/);
+    if (vulnCwes.some((c) => mitigateSet.has(c.trim()))) {
+      mitigated.push(vf.cve ?? vf.id);
+    }
   }
+  return mitigated;
+}
 
-  // Summary line
-  const findingCount = result.findings.length;
-  const critCount = result.findings.filter(
-    (f) => f.severity === "critical",
-  ).length;
-  const highCount = result.findings.filter((f) => f.severity === "high").length;
-
-  let summary = `   ${chalk.bold(String(findingCount))} finding${findingCount === 1 ? "" : "s"}`;
-  if (critCount > 0) summary += ` ${chalk.red.bold(`(${critCount} critical)`)}`;
-  else if (highCount > 0) summary += ` ${chalk.yellow(`(${highCount} high)`)}`;
-  lines.push(summary);
-
-  if (result.total_fixable_points > 0) {
-    lines.push(
-      chalk.green(
-        `   ↑ ${result.total_fixable_points} pts recoverable via auto-fix`,
-      ),
-    );
-  }
-  lines.push("");
-  lines.push(divider());
-
-  // Findings grouped by severity
+function renderFindingsSection(
+  lines: string[],
+  findings: Finding[],
+  vulnFindings: Finding[],
+): void {
   const bySev = new Map<string, Finding[]>();
-  for (const f of result.findings) {
+  for (const f of findings) {
     const group = bySev.get(f.severity) ?? [];
     group.push(f);
     bySev.set(f.severity, group);
@@ -188,8 +172,140 @@ export function reportText(result: AuditResult): string {
       if (f.recommendation) {
         lines.push(`     ${chalk.cyan("→")} ${f.recommendation}`);
       }
+
+      // CVE cross-reference for config findings
+      const mitigated = countMitigatedCves(f, vulnFindings);
+      if (mitigated.length > 0) {
+        const cveList =
+          mitigated.length <= 3
+            ? mitigated.join(", ")
+            : `${mitigated.slice(0, 3).join(", ")} +${mitigated.length - 3} more`;
+        lines.push(
+          `     ${chalk.magenta("🔗")} ${chalk.magenta(`Fixing this also mitigates ${mitigated.length} active CVE${mitigated.length === 1 ? "" : "s"} (${cveList})`)}`,
+        );
+      }
+
       lines.push("");
     }
+  }
+}
+
+export function reportText(result: AuditResult): string {
+  const lines: string[] = [];
+  const gradeColor = GRADE_COLOR[result.grade] ?? chalk.white;
+
+  // Banner
+  lines.push(CARAPACE_BANNER);
+  lines.push("");
+
+  // Config info
+  lines.push(chalk.gray(`   Config:  ${result.config_path}`));
+  lines.push(chalk.gray(`   Rules:   ${result.rules_evaluated} evaluated`));
+  lines.push("");
+  lines.push(divider());
+  lines.push("");
+
+  // Score display — config score only
+  const bar = scoreBar(result.score);
+  lines.push(
+    `   Config Grade ${gradeColor(result.grade)}  ${chalk.bold(String(result.score))}/100  ${bar}`,
+  );
+  lines.push("");
+
+  // Grade reaction
+  const reaction = GRADE_REACTION[result.grade];
+  if (reaction) {
+    lines.push(chalk.italic(`   ${reaction}`));
+    lines.push("");
+  }
+
+  const configFindings =
+    result.config_findings ??
+    result.findings.filter((f) => f.rule_type !== "vulnerability");
+  const vulnFindings =
+    result.vuln_findings ??
+    result.findings.filter((f) => f.rule_type === "vulnerability");
+  const vulnSummary = result.vuln_summary;
+
+  // ── Config findings section ──
+
+  if (configFindings.length === 0 && vulnFindings.length === 0) {
+    lines.push(`   ${CLEAN_MESSAGE}`);
+    lines.push("");
+    return lines.join("\n");
+  }
+
+  if (configFindings.length > 0) {
+    const critCount = configFindings.filter(
+      (f) => f.severity === "critical",
+    ).length;
+    const highCount = configFindings.filter(
+      (f) => f.severity === "high",
+    ).length;
+
+    let summary = `   ${chalk.bold(String(configFindings.length))} config finding${configFindings.length === 1 ? "" : "s"}`;
+    if (critCount > 0)
+      summary += ` ${chalk.red.bold(`(${critCount} critical)`)}`;
+    else if (highCount > 0)
+      summary += ` ${chalk.yellow(`(${highCount} high)`)}`;
+    lines.push(summary);
+
+    if (result.total_fixable_points > 0) {
+      lines.push(
+        chalk.green(
+          `   ↑ ${result.total_fixable_points} pts recoverable via auto-fix`,
+        ),
+      );
+    }
+    lines.push("");
+    lines.push(divider());
+
+    renderFindingsSection(lines, configFindings, vulnFindings);
+  } else {
+    lines.push(chalk.green("   No config issues found."));
+    lines.push("");
+  }
+
+  // ── Vulnerability exposure section ──
+
+  if (vulnFindings.length > 0 && vulnSummary) {
+    lines.push(divider());
+    lines.push("");
+    lines.push(chalk.red.bold("   🐛 Vulnerability Exposure"));
+    lines.push("");
+
+    // Summary badges
+    const parts: string[] = [];
+    if (vulnSummary.critical > 0)
+      parts.push(chalk.red.bold(`${vulnSummary.critical} critical`));
+    if (vulnSummary.high > 0)
+      parts.push(chalk.yellow(`${vulnSummary.high} high`));
+    if (vulnSummary.medium > 0)
+      parts.push(chalk.hex("#FFA500")(`${vulnSummary.medium} medium`));
+    if (vulnSummary.low > 0) parts.push(chalk.blue(`${vulnSummary.low} low`));
+
+    lines.push(
+      `   ${chalk.bold(String(vulnSummary.total))} advisories affect your gateway version`,
+    );
+    if (parts.length > 0) {
+      lines.push(`   ${parts.join("  ·  ")}`);
+    }
+    lines.push("");
+
+    if (vulnSummary.recommended_version) {
+      lines.push(
+        `   ${chalk.cyan("→")} Update to ${chalk.bold(`v${vulnSummary.recommended_version}`)} or later to resolve all known advisories`,
+      );
+      lines.push("");
+    }
+
+    lines.push(
+      chalk.gray(
+        "   These don't affect your config grade — they require a gateway update.",
+      ),
+    );
+    lines.push(chalk.gray("   Run with --no-vulns to hide this section."));
+    lines.push("");
   }
 
   lines.push(divider());
@@ -234,7 +350,7 @@ export function reportSarif(result: AuditResult): string {
           driver: {
             name: "openclaw-carapace",
             informationUri: "https://github.com/CoChatAI/openclaw-carapace",
-            version: "0.1.0",
+            version: "0.2.0",
             rules: result.findings.map((f) => ({
               id: f.id,
               shortDescription: { text: f.title },

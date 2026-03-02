@@ -26,6 +26,7 @@ Built by [CoChat](https://cochat.ai).
 ---
 
 Run one command. See exactly what's wrong with your gateway and how to fix it.
+![openclaw](https://github.com/user-attachments/assets/79f98f97-c1de-4de8-8f40-926a458bacc5)
 
 ```
 $ openclaw-carapace audit

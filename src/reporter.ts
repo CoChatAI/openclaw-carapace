@@ -32,10 +32,10 @@ const GRADE_COLOR: Record<string, (s: string) => string> = {
 // ---------------------------------------------------------------------------
 
 const CARAPACE_BANNER = `
-${chalk.red.bold("   ┌─────────────────────────────┐")}
-${chalk.red.bold("   │")}  ${chalk.white.bold("🦞  O P E N C L A W")}          ${chalk.red.bold("│")}
-${chalk.red.bold("   │")}  ${chalk.white.bold("    C A R A P A C E")}          ${chalk.red.bold("│")}
-${chalk.red.bold("   └─────────────────────────────┘")}`;
+🦞 ${chalk.red.bold("┌─────────────────────┐")} 🦞
+🦞 ${chalk.red.bold("│")}   ${chalk.white.bold("O P E N C L A W")}   ${chalk.red.bold("│")} 🦞
+🦞 ${chalk.red.bold("│")}   ${chalk.white.bold("C A R A P A C E")}   ${chalk.red.bold("│")} 🦞
+🦞 ${chalk.red.bold("└─────────────────────┘")} 🦞`;
 
 const SKILL_BANNER = `
 ${chalk.red.bold("   ┌─────────────────────────────┐")}

@@ -1,6 +1,6 @@
 {
   "name": "@cochatai/openclaw-shield",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Security auditor and hardening tool for OpenClaw gateways",
   "type": "module",
   "main": "dist/index.js",
@@ -13,7 +13,6 @@
     "rules",
     "patterns",
     "profiles",
-    "vulnerabilities",
     "skills",
     "README.md",
     "LICENSE"
@@ -24,7 +23,8 @@
     "lint": "eslint src/",
     "test": "node --experimental-vm-modules node_modules/.bin/vitest run",
     "test:watch": "node --experimental-vm-modules node_modules/.bin/vitest",
-    "start": "node dist/cli.js"
+    "start": "node dist/cli.js",
+    "postinstall": "node dist/postinstall.js"
   },
   "keywords": [
     "openclaw",

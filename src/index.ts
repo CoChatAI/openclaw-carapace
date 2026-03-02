@@ -4,7 +4,6 @@ export {
   loadRules,
   loadPatterns,
   loadProfiles,
-  loadVulnerabilities,
   loadSkillRules,
   loadSkillBlocklist,
 } from "./loader.js";

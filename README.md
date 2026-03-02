@@ -1,60 +1,175 @@
 # OpenClaw Shield
 
-**Security auditor, CVE scanner, and skill analyzer for [OpenClaw](https://openclaw.ai) gateways.**
+**Security auditor for [OpenClaw](https://openclaw.ai) gateways.**
+Built by [CoChat](https://cochat.ai).
 
-[![npm version](https://img.shields.io/npm/v/@cochatai/openclaw-shield)](https://www.npmjs.com/package/@cochatai/openclaw-shield)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
+<p align="center">
+  <a href="https://www.npmjs.com/package/@cochatai/openclaw-shield"><img src="https://img.shields.io/npm/v/@cochatai/openclaw-shield?style=for-the-badge&color=d63031&label=npm" alt="npm version"></a>
+  <img src="https://img.shields.io/badge/rules-24-d63031?style=for-the-badge" alt="24 audit rules">
+  <img src="https://img.shields.io/badge/CVEs-225+-8b0000?style=for-the-badge" alt="225+ advisories">
+  <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="MIT License">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/critical-8_rules-8b0000?style=flat-square" alt="8 critical rules">
+  <img src="https://img.shields.io/badge/high-7_rules-d63031?style=flat-square" alt="7 high rules">
+  <img src="https://img.shields.io/badge/medium-8_rules-e17055?style=flat-square" alt="8 medium rules">
+  <img src="https://img.shields.io/badge/low-1_rule-27ae60?style=flat-square" alt="1 low rule">
+  <img src="https://img.shields.io/badge/skill_checks-6-8e44ad?style=flat-square" alt="6 skill checks">
+  <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square" alt="Node.js >= 18">
+</p>
 
 ---
 
-OpenClaw Shield audits your gateway configuration against 24 security rules, checks for 80+ known CVEs and advisories (updated hourly), scans third-party skills for malware, and outputs results in text, JSON, or SARIF for CI/CD integration.
+Run one command. See exactly what's wrong with your gateway and how to fix it.
 
-Use it as a CLI tool or import it as a library.
+```
+$ openclaw-shield audit
 
-## Features
+   ┌─────────────────────────────┐
+   │  🦞  O P E N C L A W       │
+   │      S H I E L D            │
+   └─────────────────────────────┘
 
-- **Configuration Audit** -- 24 rules across critical/high/medium/low severity. Checks authentication, sandboxing, tool permissions, exec approvals, filesystem restrictions, DM policies, and more. A-F letter grade with 100-point scoring.
-- **Vulnerability Scanning** -- Live advisory feed from [jgamblin/OpenClawCVEs](https://github.com/jgamblin/OpenClawCVEs) (80+ advisories, updated hourly via GitHub Actions). Compares your gateway version against known affected versions. Falls back to bundled static rules when offline.
-- **Skill Scanning** -- Static analysis of skill source code for hardcoded secrets, command execution, network exfiltration, filesystem access, obfuscation, and suspicious dependencies. Blocklist of known-malicious authors and campaigns (ClawHavoc, ToxicSkills, and more).
-- **CI/CD Integration** -- SARIF output for GitHub Code Scanning. Exit codes for scripting (0=clean, 1=high, 2=critical, 3=blocked skill). Hardening profiles for automated remediation.
+   Config:  /Users/dev/.openclaw/openclaw.json
+   Rules:   106 evaluated
 
-## Installation
+   ─────────────────────────────────────────────
 
-```bash
-# Global CLI
-npm install -g @cochatai/openclaw-shield
+   Grade D  30/100  [██████░░░░░░░░░░░░░░]
 
-# Project dependency
-npm install --save-dev @cochatai/openclaw-shield
+   🦞 Walking around without a shell. Fix this.
+
+   8 findings (4 critical)
+   ↑ 55 pts recoverable via auto-fix
+
+   ─────────────────────────────────────────────
+
+   CRITICAL (4)
+
+   ▸ Gateway authentication disabled                      -25pts
+     No authentication is configured on the gateway.
+     → Set gateway.auth.mode to 'token' with a strong random token.
+
+   ▸ Sandboxing disabled — exec runs on host              -25pts  ✓ fixable
+     Sandbox mode is 'off' and exec tools are not denied.
+     → Set agents.defaults.sandbox.mode to 'non-main'.
+
+   ▸ Gateway tool not denied — agent can modify config    -25pts  ✓ fixable
+     A prompt injection can undo ALL security hardening.
+     → Add 'gateway' to tools.deny.
+
+   ▸ Elevated mode enabled                                -25pts  ✓ fixable
+     Elevated exec bypasses sandboxing and runs on host.
+     → Set tools.elevated.enabled to false.
+
+   HIGH (2)
+
+   ▸ Filesystem not restricted to workspace               -10pts  ✓ fixable
+     Filesystem tools can access ~/.openclaw/ and credentials.
+     → Set tools.fs.workspaceOnly to true.
+
+   ▸ Tool loop detection disabled                         -10pts  ✓ fixable
+     A stuck agent can execute the same tool call repeatedly.
+     → Set tools.loopDetection.enabled to true.
+
+   MEDIUM (2)
+
+   ▸ Auth credential is short (< 32 chars)                -5pts
+     Short credentials are easier to brute-force.
+     → Use a random token of at least 32 characters.
+
+   ▸ mDNS full mode — broadcasting sensitive info         -5pts   ✓ fixable
+     Broadcasts install paths and SSH availability on LAN.
+     → Set discovery.mdns.mode to 'minimal' or 'off'.
+
+   ─────────────────────────────────────────────
+
+   Run with --format json for machine-readable output
+   Run with --format sarif for GitHub Code Scanning
 ```
 
-Requires Node.js 18+.
+Shield tells you what's wrong, why it matters, and exactly what to change. Most findings can be auto-fixed.
 
-## Quick Start
+## Install
 
 ```bash
-# Audit your gateway config (auto-discovers ~/.openclaw/openclaw.json)
+npm install -g @cochatai/openclaw-shield
+```
+
+Requires Node.js 18+. That's it.
+
+## What It Checks
+
+**Your config** -- 24 rules catch misconfigurations in authentication, sandboxing, tool permissions, exec approvals, filesystem restrictions, DM policies, and more. Each finding explains the risk and tells you the fix.
+
+**Known vulnerabilities** -- Shield fetches 80+ CVEs and advisories from [jgamblin/OpenClawCVEs](https://github.com/jgamblin/OpenClawCVEs) (updated hourly) and checks them against your gateway version. Works offline too.
+
+**Third-party skills** -- Scan any skill directory for hardcoded secrets, shell execution, network exfiltration, obfuscation, and known-malicious authors.
+
+## Usage
+
+```bash
+# Audit your gateway (auto-discovers ~/.openclaw/openclaw.json)
 openclaw-shield audit
 
-# Specify a config file
+# Point to a specific config
 openclaw-shield audit --config ./openclaw.json
 
-# Output SARIF for CI
-openclaw-shield audit --format sarif > results.sarif
+# Scan a skill before installing it
+openclaw-shield skill scan ./some-skill/ --author "skill-author"
 
-# Scan a skill for security issues
-openclaw-shield skill scan ./my-skill/ --author "some-author"
-
-# List hardening profiles
+# See what hardening profiles are available
 openclaw-shield profiles list
+
+# Output SARIF for GitHub Code Scanning
+openclaw-shield audit --format sarif > results.sarif
 ```
+
+## Scoring
+
+Your gateway gets a score out of 100. Findings deduct points based on severity:
+
+| Severity | Points | Example                                   |
+| -------- | ------ | ----------------------------------------- |
+| Critical | -25    | No authentication, sandboxing off         |
+| High     | -10    | No exec approval, filesystem unrestricted |
+| Medium   | -5     | Log redaction off, short auth token       |
+| Low      | -2     | Web fetch enabled                         |
+
+**Grades:** A (90+), B (75-89), C (50-74), D (25-49), F (below 25)
+
+One critical finding drops you from A to B. The score makes risk visible at a glance.
+
+## Contributing
+
+We'd love your help. Whether it's a new audit rule, a better description for an existing finding, a blocklist update, or a bug fix -- contributions of any size are welcome.
+
+```bash
+git clone https://github.com/cochatai/openclaw-shield.git
+cd openclaw-shield
+npm install
+npm run build
+node dist/cli.js audit --help
+```
+
+**Ways to contribute:**
+
+- Report a security misconfiguration we're not catching -- [open an issue](https://github.com/cochatai/openclaw-shield/issues)
+- Add a new audit rule -- just create a YAML file in `rules/` (see [Writing Custom Rules](#writing-custom-rules) below)
+- Report a malicious skill or author -- add to `skills/blocklist/`
+- Improve finding descriptions -- clarity helps everyone
+- Add tests, fix bugs, improve docs
+
+---
+
+# Reference
+
+Everything below is detailed reference material. You don't need to read it to use Shield -- the output tells you what to do. But it's here when you need it.
 
 ## CLI Reference
 
 ### `audit`
-
-Audit a gateway config for misconfigurations and known CVEs.
 
 ```
 openclaw-shield audit [options]
@@ -71,8 +186,6 @@ openclaw-shield audit [options]
 
 ### `skill scan`
 
-Scan a skill directory for security issues and blocklist matches.
-
 ```
 openclaw-shield skill scan <path> [options]
 ```
@@ -85,15 +198,11 @@ openclaw-shield skill scan <path> [options]
 
 ### `skill blocklist`
 
-List known-malicious skill indicators (authors, IPs, domains, hashes).
-
 ```
 openclaw-shield skill blocklist [--format text|json]
 ```
 
 ### `profiles list` / `profiles show <id>`
-
-View available hardening profiles and their configuration patches.
 
 ```
 openclaw-shield profiles list
@@ -102,21 +211,17 @@ openclaw-shield profiles show locked_down --format json
 
 ### `patterns`
 
-List built-in exec firewall patterns (dangerous + suspicious).
-
 ```
 openclaw-shield patterns [--format text|json]
 ```
 
 ### `rules`
 
-List all audit rules (config + vulnerability).
-
 ```
 openclaw-shield rules [--format text|json] [--offline]
 ```
 
-## Exit Codes
+### Exit Codes
 
 | Code | Meaning                               |
 | ---- | ------------------------------------- |
@@ -124,51 +229,6 @@ openclaw-shield rules [--format text|json] [--offline]
 | `1`  | High severity finding detected        |
 | `2`  | Critical severity finding detected    |
 | `3`  | Skill matches the blocklist           |
-
-## Scoring
-
-Shield uses a 100-point deduction system:
-
-| Severity | Points Deducted |
-| -------- | --------------- |
-| Critical | 25              |
-| High     | 10              |
-| Medium   | 5               |
-| Low      | 2               |
-| Info     | 0               |
-
-**Grades:** A (90+), B (75-89), C (50-74), D (25-49), F (below 25)
-
-A single critical misconfiguration drops you from A to B. Two criticals and a high finding puts you at D. The score makes risk visible at a glance.
-
-## Sample Output
-
-```
-  OpenClaw Shield Audit
-  Config: /Users/dev/.openclaw/openclaw.json
-  Scanned: 2026-03-01T12:00:00.000Z
-  Rules evaluated: 106
-
-  Score: D 30/100
-  Findings: 8
-  Auto-fixable: +55 pts recoverable
-
-  CRITICAL
-  [critical] gateway.no_auth — Gateway authentication disabled
-    No authentication is configured on the gateway.
-    Fix: Set gateway.auth.mode to 'token' with a strong random token.
-
-  [critical] sandbox.mode_off — Sandboxing disabled — exec runs on host
-    Sandbox mode is 'off' and exec tools are not denied.
-    Fix: Set agents.defaults.sandbox.mode to 'non-main'.  [auto-fixable]
-
-  HIGH
-  [high] firewall.inactive — Tool Firewall inactive
-    tools.exec.ask is 'off' or not set.
-    Fix: Set tools.exec.ask to 'on-miss'.  [auto-fixable]
-
-  ...
-```
 
 ## Config Audit Rules
 
@@ -201,77 +261,57 @@ A single critical misconfiguration drops you from A to B. Two criticals and a hi
 
 ### Medium (8 rules)
 
-| Rule ID                          | Title                                         | CWE | Auto-fix |
-| -------------------------------- | --------------------------------------------- | --- | -------- |
-| `config_includes_present`        | Config includes detected                      |     |          |
-| `custom_provider_external`       | External model provider detected              |     |          |
-| `apply_patch.not_workspace_only` | apply_patch can write outside workspace       |     | Y        |
-| `browser.enabled_no_sandbox`     | Browser control enabled without sandboxing    |     | Y        |
-| `auth.token_short`               | Gateway auth credential is short (< 32 chars) |     |          |
-| `plugins.no_allowlist`           | Plugins without explicit allowlist            |     |          |
-| `logging.redact_off`             | Log redaction disabled                        |     | Y        |
-| `discovery.mdns_full`            | mDNS full mode -- broadcasting sensitive info |     | Y        |
+| Rule ID                          | Title                                         | Auto-fix |
+| -------------------------------- | --------------------------------------------- | -------- |
+| `config_includes_present`        | Config includes detected                      |          |
+| `custom_provider_external`       | External model provider detected              |          |
+| `apply_patch.not_workspace_only` | apply_patch can write outside workspace       | Y        |
+| `browser.enabled_no_sandbox`     | Browser control enabled without sandboxing    | Y        |
+| `auth.token_short`               | Gateway auth credential is short (< 32 chars) |          |
+| `plugins.no_allowlist`           | Plugins without explicit allowlist            |          |
+| `logging.redact_off`             | Log redaction disabled                        | Y        |
+| `discovery.mdns_full`            | mDNS full mode -- broadcasting sensitive info | Y        |
 
 ### Low (1 rule)
 
-| Rule ID                   | Title                          | Auto-fix |
-| ------------------------- | ------------------------------ | -------- |
-| `tools.web_fetch_enabled` | Web fetch/search tools enabled |          |
+| Rule ID                   | Title                          |
+| ------------------------- | ------------------------------ |
+| `tools.web_fetch_enabled` | Web fetch/search tools enabled |
 
 ## Vulnerability Scanning
 
 Shield fetches live advisory data from [jgamblin/OpenClawCVEs](https://github.com/jgamblin/OpenClawCVEs), a community-maintained repository updated hourly via GitHub Actions. This currently tracks **80+ advisories** with GHSA IDs, CVE IDs, CVSS scores, affected version ranges, and fixed versions.
 
-Each advisory is transformed into a `version_compare` rule that fires when your `gateway.version` is below the fix version. This means Shield catches vulnerabilities automatically as they're disclosed -- no manual rule updates needed.
+Each advisory becomes a version check that fires when your `gateway.version` is below the fix version. Shield catches new vulnerabilities automatically as they're disclosed.
+
+**Postinstall fetch:** When you `npm install`, Shield automatically fetches the latest advisory data so the first `audit` run has CVE coverage immediately.
 
 **Cache:** Advisory data is cached to `~/.openclaw-shield/cache/` for 1 hour. Subsequent runs within that window don't hit the network.
 
-**Offline mode:** Use `--offline` to skip network fetches entirely. Shield will use cached data if available, then fall back to the 6 static vulnerability rules bundled in the package.
-
-**Bundled static rules** (fallback):
-
-- CVE-2026-25253 -- One-click RCE via WebSocket hijacking (CVSS 8.8)
-- CVE-2026-25157 -- OS command injection via SSH handler (CVSS 8.1)
-- CVE-2026-25475 -- Local file inclusion via MEDIA: path extraction (CVSS 6.5)
-- GHSA-g55j -- Unauthenticated local RCE via WebSocket config.apply (CVSS 8.4)
-- GHSA-mc68 -- Command injection in Docker execution via PATH manipulation (CVSS 8.1)
-- GHSA-8jpq -- Local file disclosure via Feishu/Lark extension (CVSS 6.5)
+**Offline mode:** `--offline` skips network fetches and uses cached data. If no cache exists, Shield will warn you and skip vulnerability checks.
 
 ## Hardening Profiles
 
 Pre-built configuration patches that fix multiple findings at once.
 
-### `locked_down`
+| Profile          | Description                                                                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `locked_down`    | Maximum security. Denies all runtime, filesystem, and control-plane tools. Forces sandboxing for all sessions. For messaging-only bots exposed to untrusted users. |
+| `coding_safe`    | Balanced security for coding agents. Keeps exec and filesystem tools but restricts them to the workspace. Denies control-plane tools. Enables exec approvals.      |
+| `messaging_safe` | Messaging tools only. Denies all runtime, filesystem, and automation tools.                                                                                        |
+| `dm_hardened`    | Locks all channel DM policies to `pairing` and isolates sessions per channel+peer. Does not change tool settings.                                                  |
 
-Maximum security. Denies all runtime, filesystem, and control-plane tools. Forces sandboxing for all sessions. Suitable for messaging-only bots exposed to untrusted users.
-
-### `coding_safe`
-
-Balanced security for coding agents. Keeps filesystem and exec tools but restricts them to the workspace. Denies dangerous control-plane tools. Enables exec approvals and non-main session sandboxing.
-
-### `messaging_safe`
-
-Restricted to messaging tools only. Denies all runtime, filesystem, and automation tools. Suitable for bots that only need to converse and manage sessions.
-
-### `dm_hardened`
-
-Locks down all channel DM policies to `pairing` and isolates DM sessions per channel+peer. Does not change tool settings.
-
-Use `openclaw-shield profiles show <id> --format json` to inspect the exact configuration patch each profile applies.
+Use `openclaw-shield profiles show <id> --format json` to see the exact config patch.
 
 ## Exec Firewall Patterns
 
 Two categories of patterns for real-time command interception:
 
-### Dangerous (auto-deny) -- 20 patterns
+**Dangerous (auto-deny, 20 patterns)** -- Destructive file ops (`rm -rf /`), credential theft (`cat ~/.ssh/`), remote code exec (`curl | sh`), system modification (`chmod 777`), network recon (`nmap`).
 
-Blocked immediately. Includes destructive file operations (`rm -rf /`), credential theft (`cat ~/.ssh/`), remote code execution (`curl | sh`), system modification (`chmod 777`), and network recon (`nmap`).
+**Suspicious (flag for review, 13 patterns)** -- HTTP requests (`curl`, `wget`), package installation (`pip install`, `npm install -g`), privilege escalation (`sudo`), container operations (`docker`), environment access (`printenv`, `history`).
 
-### Suspicious (flag for review) -- 13 patterns
-
-Routed for human approval. Includes HTTP requests (`curl`, `wget`), package installation (`pip install`, `npm install -g`), privilege escalation (`sudo`), container operations (`docker`), and environment access (`printenv`, `history`).
-
-These patterns are safety rails for use with the CoChat tool firewall, not security boundaries -- regex-based interception can be bypassed by a determined adversary.
+These are safety rails for the CoChat tool firewall, not security boundaries.
 
 ## Skill Scanning
 
@@ -286,28 +326,18 @@ These patterns are safety rails for use with the CoChat tool firewall, not secur
 | `skill.obfuscation`             | base64 decode, fromCharCode, hex escapes        | CWE-506  |
 | `skill.suspicious_dependencies` | Typosquatted packages, postinstall scripts      | CWE-1357 |
 
-Scans `.ts`, `.js`, `.py`, `.sh`, `.json`, `.yaml` files recursively (up to depth 10, skipping `node_modules/` and `.git/`).
-
 ### Blocklist
 
-Known-malicious indicators sourced from published security research:
+Known-malicious indicators from published security research:
 
-- **ClawHavoc campaign** -- 335+ malicious skills on ClawHub delivering Atomic macOS Stealer (AMOS) via base64-encoded scripts. Tracked C2 IPs, author accounts, and domains.
-- **Known malicious authors** -- Aggregated from Snyk ToxicSkills study (2025), Bitdefender AI supply-chain research (2026), and community incident reports. Includes infostealer distributors, cryptominer campaigns, and backdoor authors.
+- **ClawHavoc campaign** -- 335+ malicious skills on ClawHub delivering Atomic macOS Stealer (AMOS).
+- **Known malicious authors** -- Aggregated from Snyk ToxicSkills (2025), Bitdefender AI supply-chain research (2026), and community reports.
 
-The blocklist checks: author name, skill name, file SHA-256 hashes, C2 IP addresses, and known malicious domains found in source code.
-
-```bash
-# Scan with metadata for blocklist matching
-openclaw-shield skill scan ./my-skill --author "some-author" --name "my-skill"
-
-# View the full blocklist
-openclaw-shield skill blocklist
-```
+Checks author name, skill name, file SHA-256 hashes, C2 IP addresses, and known malicious domains.
 
 ## SARIF / CI Integration
 
-Shield outputs [OASIS SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html) for integration with GitHub Code Scanning, VS Code SARIF Viewer, and other static analysis tools.
+Shield outputs [OASIS SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html) for GitHub Code Scanning, VS Code SARIF Viewer, and other tools.
 
 ### GitHub Actions
 
@@ -333,52 +363,35 @@ jobs:
 
 ## Programmatic Usage
 
-Import Shield as a library for custom integrations:
-
 ```typescript
 import {
   loadRules,
-  loadProfiles,
   fetchAdvisoryRules,
   evaluateRules,
   buildAuditResult,
   readConfig,
   reportText,
-  reportJson,
-  reportSarif,
 } from "@cochatai/openclaw-shield";
 
-// Load config
 const { config, path } = readConfig("./openclaw.json");
 
-// Load rules (config + live advisories)
 const configRules = loadRules();
 const vulnRules = await fetchAdvisoryRules();
 const allRules = [...configRules, ...vulnRules];
 
-// Evaluate
 const findings = evaluateRules(allRules, config);
 const result = buildAuditResult(findings, allRules.length, path);
 
-console.log(reportText(result)); // Human-readable
-console.log(reportJson(result)); // JSON
-console.log(reportSarif(result)); // SARIF 2.1.0
+console.log(reportText(result));
 ```
 
 ### Custom Check Hooks
 
-Register custom checks for domain-specific rules:
-
 ```typescript
-import {
-  registerCustomCheck,
-  evaluateRules,
-  loadRules,
-} from "@cochatai/openclaw-shield";
+import { registerCustomCheck } from "@cochatai/openclaw-shield";
 
 registerCustomCheck("my_org_policy", (config) => {
   const findings = [];
-  // Your custom logic here
   if (!config.myOrg?.approvedProvider) {
     findings.push({
       id: "my_org.no_approved_provider",
@@ -405,25 +418,17 @@ import {
   reportSkillScan,
 } from "@cochatai/openclaw-shield";
 
-const staticRules = loadSkillRules();
-const blocklist = loadSkillBlocklist();
-
-const result = scanSkill("./my-skill", staticRules, blocklist, {
+const result = scanSkill("./my-skill", loadSkillRules(), loadSkillBlocklist(), {
   author: "some-author",
   name: "my-skill",
 });
-
-if (result.blocked) {
-  console.error(`BLOCKED: ${result.block_reason}`);
-  process.exit(3);
-}
 
 console.log(reportSkillScan(result));
 ```
 
 ## Writing Custom Rules
 
-Rules are defined in YAML. Place them in a directory and pass `--rules-dir` to the CLI.
+Rules are YAML files. Drop them in a directory, pass `--rules-dir`, and Shield picks them up.
 
 ```yaml
 id: my_custom_rule
@@ -436,8 +441,6 @@ auto_fixable: true
 fix:
   my:
     setting: secure
-tags:
-  - custom
 check:
   type: value_equals
   path: my.setting
@@ -461,18 +464,6 @@ check:
 | `url_check`         | Validates URLs in a config map against trusted domains          |
 | `version_compare`   | Compares a semver string (`lt`, `le`, `eq`, `ge`, `gt`)         |
 | `custom`            | Delegates to a registered TypeScript function                   |
-
-## Contributing
-
-Issues and pull requests are welcome at [github.com/cochatai/openclaw-shield](https://github.com/cochatai/openclaw-shield).
-
-```bash
-git clone https://github.com/cochatai/openclaw-shield.git
-cd openclaw-shield
-npm install
-npm run build
-node dist/cli.js audit --help
-```
 
 ## License
 

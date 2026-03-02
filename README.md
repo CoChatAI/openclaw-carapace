@@ -91,7 +91,7 @@ $ openclaw-shield audit
 
 Shield tells you what's wrong, why it matters, and exactly what to change. Most findings can be auto-fixed.
 
-## Install
+## 📦 Install
 
 ```bash
 npm install -g @cochatai/openclaw-shield
@@ -99,7 +99,7 @@ npm install -g @cochatai/openclaw-shield
 
 Requires Node.js 18+. That's it.
 
-## What It Checks
+## 🔍 What It Checks
 
 **Your config** -- 24 rules catch misconfigurations in authentication, sandboxing, tool permissions, exec approvals, filesystem restrictions, DM policies, and more. Each finding explains the risk and tells you the fix.
 
@@ -107,7 +107,7 @@ Requires Node.js 18+. That's it.
 
 **Third-party skills** -- Scan any skill directory for hardcoded secrets, shell execution, network exfiltration, obfuscation, and known-malicious authors.
 
-## Usage
+## 🚀 Usage
 
 ```bash
 # Audit your gateway (auto-discovers ~/.openclaw/openclaw.json)
@@ -126,7 +126,7 @@ openclaw-shield profiles list
 openclaw-shield audit --format sarif > results.sarif
 ```
 
-## Scoring
+## 📊 Scoring
 
 Your gateway gets a score out of 100. Findings deduct points based on severity:
 
@@ -141,7 +141,7 @@ Your gateway gets a score out of 100. Findings deduct points based on severity:
 
 One critical finding drops you from A to B. The score makes risk visible at a glance.
 
-## Contributing
+## 🤝 Contributing
 
 We'd love your help. Whether it's a new audit rule, a better description for an existing finding, a blocklist update, or a bug fix -- contributions of any size are welcome.
 
@@ -163,11 +163,11 @@ node dist/cli.js audit --help
 
 ---
 
-# Reference
+# 📖 Reference
 
 Everything below is detailed reference material. You don't need to read it to use Shield -- the output tells you what to do. But it's here when you need it.
 
-## CLI Reference
+## ⌨️ CLI Reference
 
 ### `audit`
 
@@ -230,7 +230,7 @@ openclaw-shield rules [--format text|json] [--offline]
 | `2`  | Critical severity finding detected    |
 | `3`  | Skill matches the blocklist           |
 
-## Config Audit Rules
+## 🛡️ Config Audit Rules
 
 24 rules organized by severity. Rules with a CWE mapping indicate which vulnerability class they mitigate.
 
@@ -278,7 +278,7 @@ openclaw-shield rules [--format text|json] [--offline]
 | ------------------------- | ------------------------------ |
 | `tools.web_fetch_enabled` | Web fetch/search tools enabled |
 
-## Vulnerability Scanning
+## 🐛 Vulnerability Scanning
 
 Shield fetches live advisory data from [jgamblin/OpenClawCVEs](https://github.com/jgamblin/OpenClawCVEs), a community-maintained repository updated hourly via GitHub Actions. This currently tracks **80+ advisories** with GHSA IDs, CVE IDs, CVSS scores, affected version ranges, and fixed versions.
 
@@ -290,7 +290,7 @@ Each advisory becomes a version check that fires when your `gateway.version` is 
 
 **Offline mode:** `--offline` skips network fetches and uses cached data. If no cache exists, Shield will warn you and skip vulnerability checks.
 
-## Hardening Profiles
+## 🔒 Hardening Profiles
 
 Pre-built configuration patches that fix multiple findings at once.
 
@@ -303,7 +303,7 @@ Pre-built configuration patches that fix multiple findings at once.
 
 Use `openclaw-shield profiles show <id> --format json` to see the exact config patch.
 
-## Exec Firewall Patterns
+## 🧱 Exec Firewall Patterns
 
 Two categories of patterns for real-time command interception:
 
@@ -313,7 +313,7 @@ Two categories of patterns for real-time command interception:
 
 These are safety rails for the CoChat tool firewall, not security boundaries.
 
-## Skill Scanning
+## 🕵️ Skill Scanning
 
 ### Static Analysis (6 rule categories)
 
@@ -335,7 +335,7 @@ Known-malicious indicators from published security research:
 
 Checks author name, skill name, file SHA-256 hashes, C2 IP addresses, and known malicious domains.
 
-## SARIF / CI Integration
+## ⚙️ SARIF / CI Integration
 
 Shield outputs [OASIS SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html) for GitHub Code Scanning, VS Code SARIF Viewer, and other tools.
 
@@ -361,7 +361,7 @@ jobs:
           sarif_file: openclaw-shield.sarif
 ```
 
-## Programmatic Usage
+## 💻 Programmatic Usage
 
 ```typescript
 import {
@@ -426,7 +426,7 @@ const result = scanSkill("./my-skill", loadSkillRules(), loadSkillBlocklist(), {
 console.log(reportSkillScan(result));
 ```
 
-## Writing Custom Rules
+## ✏️ Writing Custom Rules
 
 Rules are YAML files. Drop them in a directory, pass `--rules-dir`, and Shield picks them up.
 
@@ -465,6 +465,6 @@ check:
 | `version_compare`   | Compares a semver string (`lt`, `le`, `eq`, `ge`, `gt`)         |
 | `custom`            | Delegates to a registered TypeScript function                   |
 
-## License
+## 📄 License
 
 [MIT](./LICENSE) -- Copyright (c) 2026 CoChat
